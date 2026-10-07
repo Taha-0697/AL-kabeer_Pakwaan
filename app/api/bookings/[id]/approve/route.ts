@@ -15,9 +15,19 @@ export async function POST(
     }
 
     const payload = await verifyJWT(token);
-    if (!payload || payload.role !== 'SUPER_ADMIN') {
+    if (!payload) {
+      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
+    }
+
+    const role = (payload.role as string)?.toUpperCase();
+    const canApprove =
+      role === 'SUPER_ADMIN' ||
+      role === 'ADMIN' ||
+      role === 'MANAGER';
+
+    if (!canApprove) {
       return NextResponse.json(
-        { success: false, message: 'Only Super Admin can approve orders' },
+        { success: false, message: 'You do not have permission to approve orders' },
         { status: 403 }
       );
     }
@@ -27,18 +37,25 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'Booking not found' }, { status: 404 });
     }
 
+    if (booking.status !== 'PENDING_APPROVAL') {
+      return NextResponse.json(
+        { success: false, message: `Order is already ${booking.status}` },
+        { status: 400 }
+      );
+    }
+
     const updated = await db.booking.update({
       where: { bookingId },
       data: {
         status: 'APPROVED',
-        approvedBy: payload.userId,
+        approvedBy: payload.userId as string,
         approvedAt: new Date(),
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Order approved successfully by Super Admin',
+      message: 'Order approved successfully',
       data: updated,
     });
   } catch (error) {

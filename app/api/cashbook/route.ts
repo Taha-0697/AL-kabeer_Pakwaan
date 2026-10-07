@@ -15,6 +15,27 @@ const cashTransactionSchema = z.object({
 export async function GET() {
   try {
     const transactions = await db.cashTransaction.findMany({
+      include: {
+        booking: {
+          select: {
+            bookingId: true,
+            bookingNumber: true,
+            grandTotal: true,
+            status: true,
+            paymentStatus: true,
+            items: {
+              select: {
+                id: true,
+                itemName: true,
+                quantity: true,
+                unitPrice: true,
+                subtotal: true,
+                variantName: true,
+              },
+            },
+          },
+        },
+      },
       orderBy: { txDate: 'desc' },
       take: 100,
     });
@@ -33,7 +54,8 @@ export async function POST(request: Request) {
     }
 
     const count = await db.cashTransaction.count();
-    const receiptNumber = `CB-${new Date().getFullYear()}-${(count + 1).toString().padStart(4, '0')}`;
+    const receiptNumber = `CB-${new Date().getFullYear()}-${(count + 1).toLocaleString().padStart(4, '0')
+      }`;
 
     const tx = await db.cashTransaction.create({
       data: {

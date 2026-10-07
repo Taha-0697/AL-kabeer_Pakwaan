@@ -52,7 +52,8 @@ export async function POST(request: Request) {
     // ─────────────────────────────────────────────────────────────────────────
 
     const count = await db.booking.count();
-    const bookingNumber = `AKP-${new Date().getFullYear()}-${(count + 1).toString().padStart(4, '0')}`;
+    const bookingNumber = `AKP-${new Date().getFullYear()}-${(count + 1).toLocaleString().padStart(4, '0')
+      }`;
 
     const subtotal = data.items.reduce((acc, item) => acc + item.quantity * item.unitPrice, 0);
     const taxAmount = (subtotal - data.discountAmount) * (data.taxPercent / 100);

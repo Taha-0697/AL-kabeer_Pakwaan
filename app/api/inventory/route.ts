@@ -26,21 +26,103 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, errors: result.error.format() }, { status: 400 });
     }
 
-    const item = await db.inventoryItem.create({ data: result.data });
+    const item = await db.$transaction(async (tx) => {
+      const newItem = await tx.inventoryItem.create({ data: result.data });
 
-    await db.inventoryTransaction.create({
-      data: {
-        itemId: item.itemId,
-        storeType: item.storeType,
-        txType: 'RESTOCK',
-        quantityBefore: 0,
-        quantityChanged: item.currentStock,
-        quantityAfter: item.currentStock,
-        notes: 'Initial Stock Entry',
-      },
+      await tx.inventoryTransaction.create({
+        data: {
+          itemId: newItem.itemId,
+          storeType: newItem.storeType,
+          txType: 'RESTOCK',
+          quantityBefore: 0,
+          quantityChanged: newItem.currentStock,
+          quantityAfter: newItem.currentStock,
+          notes: 'Initial Stock Entry',
+        },
+      });
+
+      if (newItem.currentStock > 0 && newItem.purchasePrice > 0) {
+        const cost = newItem.currentStock * newItem.purchasePrice;
+        await tx.cashTransaction.create({
+          data: {
+            txType: 'CASH_OUT',
+            category: 'INVENTORY',
+            amount: cost,
+            paidToFrom: newItem.supplier || 'Supplier',
+            comments: `Purchased ${newItem.currentStock} ${newItem.unit} of ${newItem.name}`,
+          },
+        });
+      }
+
+      return newItem;
     });
 
     return NextResponse.json({ success: true, data: item }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ success: false, message: (error as Error).message }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { itemId, restockQty, purchasePrice, supplier, notes, ...otherData } = body;
+
+    if (!itemId) {
+      return NextResponse.json({ success: false, message: 'itemId is required' }, { status: 400 });
+    }
+
+    const existing = await db.inventoryItem.findUnique({ where: { itemId } });
+    if (!existing) {
+      return NextResponse.json({ success: false, message: 'Item not found' }, { status: 404 });
+    }
+
+    const qtyToAdd = Number(restockQty) || 0;
+    const pricePerUnit = Number(purchasePrice) !== undefined && Number(purchasePrice) > 0 ? Number(purchasePrice) : existing.purchasePrice;
+
+    const updated = await db.$transaction(async (tx) => {
+      const newStock = existing.currentStock + qtyToAdd;
+      const item = await tx.inventoryItem.update({
+        where: { itemId },
+        data: {
+          ...otherData,
+          currentStock: qtyToAdd > 0 ? newStock : (otherData.currentStock !== undefined ? Number(otherData.currentStock) : existing.currentStock),
+          purchasePrice: pricePerUnit,
+          supplier: supplier !== undefined ? supplier : existing.supplier,
+        },
+      });
+
+      if (qtyToAdd > 0) {
+        await tx.inventoryTransaction.create({
+          data: {
+            itemId: item.itemId,
+            storeType: item.storeType,
+            txType: 'RESTOCK',
+            quantityBefore: existing.currentStock,
+            quantityChanged: qtyToAdd,
+            quantityAfter: item.currentStock,
+            notes: notes || 'Stock Restock / Purchase',
+          },
+        });
+
+        if (pricePerUnit > 0) {
+          const totalCost = qtyToAdd * pricePerUnit;
+          await tx.cashTransaction.create({
+            data: {
+              txType: 'CASH_OUT',
+              category: 'INVENTORY',
+              amount: totalCost,
+              paidToFrom: item.supplier || supplier || 'Supplier',
+              comments: `Restocked ${qtyToAdd} ${item.unit} of ${item.name}`,
+            },
+          });
+        }
+      }
+
+      return item;
+    });
+
+    return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     return NextResponse.json({ success: false, message: (error as Error).message }, { status: 500 });
   }

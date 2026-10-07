@@ -31,7 +31,8 @@ export async function POST(
     }
 
     const count = await db.bookingPayment.count();
-    const receiptNumber = `RCP-${new Date().getFullYear()}-${(count + 1).toString().padStart(4, '0')}`;
+    const receiptNumber = `RCP-${new Date().getFullYear()}-${(count + 1).toLocaleString().padStart(4, '0')
+      }`;
 
     const payment = await db.bookingPayment.create({
       data: {

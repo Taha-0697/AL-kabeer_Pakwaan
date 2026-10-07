@@ -8,8 +8,25 @@ import { PermissionGuard } from '@/components/auth/PermissionGuard';
 import { Button } from '@/components/ui/Button';
 import { PlusCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useLanguage } from '@/components/LanguageProvider';
+import { useAuth } from '@/lib/auth/useAuth';
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
+  const { user, hasPermission } = useAuth();
+
+  // Determine if the current user may see financial data
+  const role = user?.role?.toUpperCase() || 'VIEWER';
+  const canViewFinance =
+    role === 'SUPER_ADMIN' ||
+    role === 'ADMIN' ||
+    role === 'ACCOUNTS_STAFF' ||
+    hasPermission('screen:cashbook') ||
+    hasPermission('screen:finance');
+
+  // All roles that can see the bookings screen get the recent bookings table
+  const canViewBookings = hasPermission('screen:bookings') || canViewFinance;
+
   const [kpis, setKpis] = useState<Kpis>({
     pendingBookings: 0,
     todayBookings: 0,
@@ -26,15 +43,17 @@ export default function DashboardPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [kpiRes, bookingRes] = await Promise.all([
-        fetch('/api/dashboard/kpis'),
-        fetch('/api/bookings'),
-      ]);
-      const kpiData = await kpiRes.json();
-      const bookingData = await bookingRes.json();
+      const requests: Promise<Response>[] = [fetch('/api/dashboard/kpis')];
+      if (canViewBookings) requests.push(fetch('/api/bookings'));
 
+      const [kpiRes, bookingRes] = await Promise.all(requests);
+      const kpiData = await kpiRes.json();
       if (kpiData.success) setKpis(kpiData.data);
-      if (bookingData.success) setBookings(bookingData.data);
+
+      if (bookingRes) {
+        const bookingData = await bookingRes.json();
+        if (bookingData.success) setBookings(bookingData.data);
+      }
     } catch {
       console.error('Failed to load dashboard data');
     } finally {
@@ -44,12 +63,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <PageContainer
-      title="Dashboard Overview"
-      subtitle="Real-time catering business operations, bookings, & revenue monitoring"
+      title={t('dashboardOverview')}
+      subtitle={t('dashboardSubtitle')}
       action={
         <div className="flex items-center gap-3">
           <Button
@@ -59,12 +79,12 @@ export default function DashboardPage() {
             isLoading={loading}
             leftIcon={<RefreshCw className="h-4 w-4" />}
           >
-            Refresh
+            {t('refresh')}
           </Button>
           <PermissionGuard permission="action:booking_create">
             <Link href="/bookings/new">
               <Button variant="gold" size="sm" leftIcon={<PlusCircle className="h-4 w-4" />}>
-                Create New Order
+                {t('createNewOrder')}
               </Button>
             </Link>
           </PermissionGuard>
@@ -72,7 +92,9 @@ export default function DashboardPage() {
       }
     >
       <KpiGrid kpis={kpis} />
-      <RecentBookingsTable bookings={bookings} />
+      {canViewBookings && (
+        <RecentBookingsTable bookings={bookings} showFinancials={canViewFinance} />
+      )}
     </PageContainer>
   );
 }

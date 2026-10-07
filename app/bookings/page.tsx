@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/Button';
 import { PlusCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { PermissionGuard } from '@/components/auth/PermissionGuard';
+import { useLanguage } from '@/components/LanguageProvider';
 
 export default function BookingsPage() {
+  const { t } = useLanguage();
   const [bookings, setBookings] = useState<BookingDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<BookingDetail | null>(null);
@@ -33,8 +35,8 @@ export default function BookingsPage() {
 
   return (
     <PageContainer
-      title="Event Bookings & Orders"
-      subtitle="Manage catering event reservations, payments, and statuses"
+      title={t('eventBookings')}
+      subtitle={t('bookingsSubtitle')}
       action={
         <div className="flex items-center gap-3">
           <Button
@@ -44,19 +46,24 @@ export default function BookingsPage() {
             isLoading={loading}
             leftIcon={<RefreshCw className="h-4 w-4" />}
           >
-            Refresh
+            {t('refresh')}
           </Button>
           <PermissionGuard permission="action:booking_create">
             <Link href="/bookings/new">
               <Button variant="gold" size="sm" leftIcon={<PlusCircle className="h-4 w-4" />}>
-                Create New Order
+                {t('createNewOrder')}
               </Button>
             </Link>
           </PermissionGuard>
         </div>
       }
     >
-      <BookingListTable bookings={bookings} onRecordPayment={(b) => setSelectedBooking(b)} />
+      <BookingListTable
+        bookings={bookings}
+        loading={loading}
+        onRecordPayment={(b) => setSelectedBooking(b)}
+        onStatusChange={fetchBookings}
+      />
       <PaymentModal
         booking={selectedBooking}
         onClose={() => setSelectedBooking(null)}

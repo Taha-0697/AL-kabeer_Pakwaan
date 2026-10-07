@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { UserManagementTable, UserItem } from '@/components/users/UserManagementTable';
 import { UserModal } from '@/components/users/UserModal';
+import { ResetPasswordModal } from '@/components/users/ResetPasswordModal';
 import { RoleMatrixViewer } from '@/components/users/RoleMatrixViewer';
 import { Button } from '@/components/ui/Button';
 import { UserPlus, ShieldCheck, Users, RefreshCw } from 'lucide-react';
@@ -15,7 +16,9 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'users' | 'matrix'>('users');
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
+  const [resetUser, setResetUser] = useState<UserItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -43,10 +46,15 @@ export default function UsersPage() {
     fetchUsers();
   };
 
+  const handleOpenReset = (u: UserItem) => {
+    setResetUser(u);
+    setIsResetOpen(true);
+  };
+
   return (
     <PageContainer
       title="User Accounts & Role Permissions (RBAC)"
-      subtitle="Manage user accounts, assign roles, and view granular screen & button permissions"
+      subtitle="Manage user accounts, assign roles, reset passwords, and view granular screen & button permissions"
       action={
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={fetchUsers} isLoading={loading} leftIcon={<RefreshCw className="h-4 w-4" />}>
@@ -65,12 +73,12 @@ export default function UsersPage() {
         </div>
       }
     >
-      <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+      <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
         <button
           onClick={() => setActiveTab('users')}
           className={clsx(
             'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
-            activeTab === 'users' ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30' : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+            activeTab === 'users' ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30' : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           )}
         >
           <Users className="h-4 w-4" />
@@ -80,7 +88,7 @@ export default function UsersPage() {
           onClick={() => setActiveTab('matrix')}
           className={clsx(
             'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all',
-            activeTab === 'matrix' ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30' : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+            activeTab === 'matrix' ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30' : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           )}
         >
           <ShieldCheck className="h-4 w-4" />
@@ -91,7 +99,9 @@ export default function UsersPage() {
       {activeTab === 'users' ? (
         <UserManagementTable
           users={users}
+          loading={loading}
           onEdit={(u) => { setSelectedUser(u); setIsModalOpen(true); }}
+          onResetPassword={handleOpenReset}
           onToggleActive={handleToggleActive}
         />
       ) : (
@@ -102,6 +112,16 @@ export default function UsersPage() {
         user={selectedUser}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchUsers}
+      />
+
+      <ResetPasswordModal
+        user={resetUser}
+        isOpen={isResetOpen}
+        onClose={() => {
+          setIsResetOpen(false);
+          setResetUser(null);
+        }}
         onSuccess={fetchUsers}
       />
     </PageContainer>

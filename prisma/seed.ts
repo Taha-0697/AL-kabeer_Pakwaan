@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client/extension';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -207,9 +207,13 @@ async function main() {
         sellingPrice: 18500.0,
         costPrice: 13000.0,
         description: 'Authentic 12kg Degh with premium basmati rice & chicken',
-        chickenPrice: 18500.0,
-        beefPrice: 22500.0,
-        muttonPrice: 31000.0,
+        variants: {
+          create: [
+            { name: 'Chicken 10KG', weightKg: 10, price: 18500.0 },
+            { name: 'Beef 12KG', weightKg: 12, price: 22500.0 },
+            { name: 'Mutton 12KG', weightKg: 12, price: 31000.0 },
+          ],
+        },
       },
     });
 

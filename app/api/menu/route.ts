@@ -10,9 +10,6 @@ const menuItemSchema = z.object({
   costPrice: z.number().default(0),
   description: z.string().optional(),
   imageUrl: z.string().optional(),
-  chickenPrice: z.number().default(0),
-  beefPrice: z.number().default(0),
-  muttonPrice: z.number().default(0),
   variants: z.array(z.object({
     name: z.string(),
     weightKg: z.number().default(0),

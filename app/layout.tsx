@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 
 import { LanguageProvider } from '@/components/LanguageProvider';
 import { AuthProvider } from '@/lib/auth/AuthContext';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export default function RootLayout({
   children,
@@ -19,20 +20,20 @@ export default function RootLayout({
   const themeVars = {
     '--theme-primary': themeConfig.colors.primary,
     '--theme-secondary': themeConfig.colors.secondary,
-    '--theme-bg': themeConfig.colors.background,
     '--theme-text': themeConfig.colors.text,
   } as React.CSSProperties;
 
   return (
-    <html lang={themeConfig.defaultLanguage} className="dark">
-      <body className="bg-[var(--theme-bg)] text-[var(--theme-text)] min-h-screen" style={themeVars}>
-        <AuthProvider>
-          <LanguageProvider>
-            {children}
-          </LanguageProvider>
-        </AuthProvider>
+    <html lang={themeConfig.defaultLanguage} suppressHydrationWarning>
+      <body className="min-h-screen transition-colors duration-300 text-slate-800 bg-slate-50 dark:bg-[#020617] dark:text-[#f8fafc]" style={themeVars}>
+        <ThemeProvider attribute="class" defaultTheme={themeConfig.defaultTheme || 'dark'} enableSystem>
+          <AuthProvider>
+            <LanguageProvider>
+              {children}
+            </LanguageProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
-

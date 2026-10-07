@@ -13,7 +13,7 @@ import { PermissionGuard } from '@/components/auth/PermissionGuard';
 interface Variant { variantId?: string; name: string; weightKg: number; price: number; }
 interface MenuItem {
   itemId: string; name: string; category: string; unit: string;
-  sellingPrice: number; chickenPrice: number; beefPrice: number; muttonPrice: number;
+  sellingPrice: number;
   description?: string; variants: Variant[];
 }
 
@@ -48,8 +48,7 @@ export default function MenuPage() {
       body: JSON.stringify({
         itemId: editing.itemId,
         name: editing.name, category: editing.category, unit: editing.unit,
-        sellingPrice: editing.sellingPrice, chickenPrice: editing.chickenPrice,
-        beefPrice: editing.beefPrice, muttonPrice: editing.muttonPrice,
+        sellingPrice: editing.sellingPrice,
         description: editing.description,
         variants: editing.variants.map(({ name, weightKg, price }) => ({ name, weightKg, price })),
       }),
@@ -92,40 +91,62 @@ export default function MenuPage() {
       <div className="flex gap-6">
         {/* Grid */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 content-start">
-          {items.map((item) => (
-            <Card key={item.itemId} glass className={'space-y-3 transition-all ' + (editing?.itemId === item.itemId ? 'border-amber-500/60' : '')}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <UtensilsCrossed className="h-4 w-4 text-brand-400" />
-                  <h3 className="font-bold text-white text-sm">{item.name}</h3>
+          {loading ? (
+            [...Array(6)].map((_, i) => (
+              <Card key={i} glass className="space-y-3 animate-pulse">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 rounded-md bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-4 w-28 rounded-md bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                  <div className="h-5 w-14 rounded-full bg-slate-200 dark:bg-slate-700" />
                 </div>
-                <div className="flex items-center gap-1">
-                  <Badge variant="gold">{item.category}</Badge>
-                  <PermissionGuard permission="action:menu_create">
-                    <button onClick={() => startEdit(item)} className="ml-1 p-1 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-amber-400 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => deleteItem(item.itemId)} className="p-1 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-red-400 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
-                  </PermissionGuard>
+                <div className="bg-slate-100 dark:bg-slate-950 p-3 rounded-xl space-y-2">
+                  <div className="flex justify-between">
+                    <div className="h-3 w-12 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-3 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-3 w-24 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-3 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+                  </div>
                 </div>
-              </div>
-              <div className="bg-slate-950 p-3 rounded-xl space-y-1 text-xs">
-                <div className="flex justify-between text-slate-300"><span>Price:</span><span className="font-bold text-amber-400">PKR {item.sellingPrice.toLocaleString()} / {item.unit}</span></div>
-                {item.variants && item.variants.length > 0 ? (
-                  item.variants.map((v, i) => (
-                    <div key={v.variantId ?? i} className="flex justify-between text-slate-400">
-                      <span>{v.name} ({v.weightKg}KG)</span>
-                      <span className="font-bold text-brand-400">PKR {v.price.toLocaleString()}</span>
-                    </div>
-                  ))
-                ) : (
-                  <>
-                    {item.chickenPrice > 0 && <div className="flex justify-between text-slate-400"><span>Chicken:</span><span>PKR {item.chickenPrice.toLocaleString()}</span></div>}
-                    {item.beefPrice > 0 && <div className="flex justify-between text-slate-400"><span>Beef:</span><span>PKR {item.beefPrice.toLocaleString()}</span></div>}
-                    {item.muttonPrice > 0 && <div className="flex justify-between text-slate-400"><span>Mutton:</span><span>PKR {item.muttonPrice.toLocaleString()}</span></div>}
-                  </>
-                )}
-              </div>
-            </Card>
-          ))}
+              </Card>
+            ))
+          ) : items.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-slate-400">
+              No menu dishes found. Click &quot;Add Dish&quot; to create one.
+            </div>
+          ) : (
+            items.map((item) => (
+              <Card key={item.itemId} glass className={'space-y-3 transition-all ' + (editing?.itemId === item.itemId ? 'border-amber-500/60' : '')}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <UtensilsCrossed className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                    <h3 className="font-bold text-slate-900 dark:text-white text-sm">{item.name}</h3>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Badge variant="gold">{item.category}</Badge>
+                    <PermissionGuard permission="action:menu_create">
+                      <button onClick={() => startEdit(item)} className="ml-1 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-amber-500 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => deleteItem(item.itemId)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </PermissionGuard>
+                  </div>
+                </div>
+                <div className="bg-slate-100 dark:bg-slate-950 p-3 rounded-xl space-y-1 text-xs">
+                  <div className="flex justify-between text-slate-700 dark:text-slate-300"><span>Price:</span><span className="font-bold text-amber-600 dark:text-amber-400">PKR {item.sellingPrice.toLocaleString()} / {item.unit}</span></div>
+                  {item.variants && item.variants.length > 0 && (
+                    item.variants.map((v, i) => (
+                      <div key={v.variantId ?? i} className="flex justify-between text-slate-600 dark:text-slate-400">
+                        <span>{v.name} ({v.weightKg}KG)</span>
+                        <span className="font-bold text-brand-600 dark:text-brand-400">PKR {v.price.toLocaleString()}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Edit Panel */}
@@ -137,32 +158,27 @@ export default function MenuPage() {
                 <button onClick={() => setEditing(null)}><X className="h-5 w-5 text-slate-500 hover:text-white" /></button>
               </div>
               <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
-                <Input label="Dish Name" value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})} />
+                <Input label="Dish Name" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} />
                 <div className="grid grid-cols-2 gap-2">
-                  <Input label="Category" value={editing.category} onChange={e => setEditing({...editing, category: e.target.value})} />
-                  <Input label="Unit" value={editing.unit} onChange={e => setEditing({...editing, unit: e.target.value})} />
+                  <Input label="Category" value={editing.category} onChange={e => setEditing({ ...editing, category: e.target.value })} />
+                  <Input label="Unit" value={editing.unit} onChange={e => setEditing({ ...editing, unit: e.target.value })} />
                 </div>
-                <Input label="Selling Price (PKR)" type="number" value={editing.sellingPrice} onChange={e => setEditing({...editing, sellingPrice: Number(e.target.value)})} />
-                <div className="grid grid-cols-3 gap-2">
-                  <Input label="Chicken" type="number" value={editing.chickenPrice} onChange={e => setEditing({...editing, chickenPrice: Number(e.target.value)})} />
-                  <Input label="Beef" type="number" value={editing.beefPrice} onChange={e => setEditing({...editing, beefPrice: Number(e.target.value)})} />
-                  <Input label="Mutton" type="number" value={editing.muttonPrice} onChange={e => setEditing({...editing, muttonPrice: Number(e.target.value)})} />
-                </div>
+                <Input label="Selling Price (PKR)" type="number" value={editing.sellingPrice} onChange={e => setEditing({ ...editing, sellingPrice: Number(e.target.value) })} />
 
                 {/* Variants */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold text-slate-400">Degh Variants</span>
-                    <button onClick={() => setEditing({...editing, variants: [...editing.variants, {name:'', weightKg:10, price:0}]})} className="text-xs text-amber-400 flex items-center gap-1 hover:text-amber-300">
+                    <button onClick={() => setEditing({ ...editing, variants: [...editing.variants, { name: '', weightKg: 10, price: 0 }] })} className="text-xs text-amber-400 flex items-center gap-1 hover:text-amber-300">
                       <PlusCircle className="h-3.5 w-3.5" />Add Variant
                     </button>
                   </div>
                   {editing.variants.map((v, i) => (
                     <div key={i} className="grid grid-cols-[1fr_80px_80px_auto] gap-1.5 mb-2 items-end">
-                      <Input label={i === 0 ? 'Name' : ''} value={v.name} onChange={e => updateVariant(i,'name',e.target.value)} />
-                      <Input label={i === 0 ? 'KG' : ''} type="number" value={v.weightKg} onChange={e => updateVariant(i,'weightKg',Number(e.target.value))} />
-                      <Input label={i === 0 ? 'Price' : ''} type="number" value={v.price} onChange={e => updateVariant(i,'price',Number(e.target.value))} />
-                      <button onClick={() => setEditing({...editing, variants: editing.variants.filter((_,j)=>j!==i)})} className="mb-1 p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20"><Trash2 className="h-3.5 w-3.5" /></button>
+                      <Input label={i === 0 ? 'Name' : ''} value={v.name} onChange={e => updateVariant(i, 'name', e.target.value)} />
+                      <Input label={i === 0 ? 'KG' : ''} type="number" value={v.weightKg} onChange={e => updateVariant(i, 'weightKg', Number(e.target.value))} />
+                      <Input label={i === 0 ? 'Price' : ''} type="number" value={v.price} onChange={e => updateVariant(i, 'price', Number(e.target.value))} />
+                      <button onClick={() => setEditing({ ...editing, variants: editing.variants.filter((_, j) => j !== i) })} className="mb-1 p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   ))}
                 </div>

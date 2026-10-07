@@ -125,9 +125,7 @@ model MenuItem {
   isActive     Boolean            @default(true)
   description  String?
   imageUrl     String?
-  chickenPrice Float              @default(0.0)
-  beefPrice    Float              @default(0.0)
-  muttonPrice  Float              @default(0.0)
+
   recipes      Recipe[]
   bookingItems BookingItem[]
   dealItems    DealItem[]
@@ -195,7 +193,10 @@ model Deal {
   dealId          String     @id @default(uuid())
   title           String
   description     String?
-  timeSlot        String     @default("Dinner")
+  timeSlot        String     @default("5 Days") // e.g. "5 Days", "7 Days", "Custom"
+  validDays       Int        @default(5)        // Validity duration in days from start
+  startDate       DateTime   @default(now())    // When this deal started/restarted
+  createdAt       DateTime   @default(now())
   minPersons      Int        @default(100)
   maxPersons      Int        @default(500)
   pricePerPerson  Float      @default(0.0)
@@ -206,13 +207,16 @@ model Deal {
 }
 
 model DealItem {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   dealId     String
-  deal       Deal     @relation(fields: [dealId], references: [dealId], onDelete: Cascade)
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [itemId], onDelete: Cascade)
-  quantity   Float    @default(1.0)
-  unitPrice  Float    @default(0.0)
+  deal       Deal      @relation(fields: [dealId], references: [dealId], onDelete: Cascade)
+  menuItemId String?
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [itemId], onDelete: Cascade)
+  customName String?
+  customUnit String?
+  variantId  String?
+  quantity   Float     @default(1.0)
+  unitPrice  Float     @default(0.0)
 }
 
 model Booking {
@@ -343,14 +347,24 @@ model Employee {
 }
 
 model AttendanceRecord {
-  recordId     String    @id @default(uuid())
-  employeeId   String
-  employee     Employee  @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
-  date         DateTime  @default(now())
-  checkInTime  DateTime?
-  checkOutTime DateTime?
-  hoursWorked  Float     @default(0.0)
-  notes        String?
+  recordId        String    @id @default(uuid())
+  employeeId      String
+  employee        Employee  @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+  date            DateTime  @default(now())
+  checkInTime     DateTime?
+  checkOutTime    DateTime?
+  hoursWorked     Float     @default(0.0)
+  overtimeHours   Float     @default(0.0)
+  status          String    @default("PRESENT") // PRESENT, ABSENT, HALF_DAY, ON_LEAVE
+  bonus           Float     @default(0.0)
+  notes           String?
+  isLocked        Boolean   @default(true)
+  approvalStatus  String    @default("APPROVED") // APPROVED, PENDING_APPROVAL, REJECTED
+  requestedChange String?
+  markedBy        String?
+  approvedBy      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
 }
 
 model LabourAssignment {
@@ -386,3 +400,14 @@ model SalaryNotice {
   isRead     Boolean  @default(false)
   createdAt  DateTime @default(now())
 }
+
+model Localization {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  en        String
+  ur        String
+  category  String   @default("general")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

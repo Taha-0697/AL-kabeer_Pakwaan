@@ -21,9 +21,9 @@ export const MenuForm: React.FC = () => {
   const [category, setCategory] = useState('Rice');
   const [unit, setUnit] = useState('Degh');
   const [sellingPrice, setSellingPrice] = useState(0);
-  
+
   const [variants, setVariants] = useState<VariantForm[]>([]);
-  
+
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -105,7 +105,7 @@ export const MenuForm: React.FC = () => {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && <p className="text-xs text-red-500 font-semibold">{error}</p>}
-      
+
       <Card glass className="space-y-4">
         <h3 className="text-sm font-bold uppercase tracking-wider text-amber-500">Dish Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -115,10 +115,10 @@ export const MenuForm: React.FC = () => {
           <Input label="Standard Base Price" type="number" value={sellingPrice} onChange={(e) => setSellingPrice(Number(e.target.value))} min="0" />
         </div>
         <div>
-          <label className="block text-xs font-semibold uppercase text-slate-300 mb-1 flex items-center gap-2">
+          <label className="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
             <ImageIcon className="h-4 w-4" /> Main Picture (Optional)
           </label>
-          <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-sm text-slate-100" />
+          <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100" />
         </div>
       </Card>
 
@@ -127,11 +127,11 @@ export const MenuForm: React.FC = () => {
           <h3 className="text-sm font-bold uppercase tracking-wider text-amber-500">Variants (e.g. Chicken 10KG, Beef 12KG)</h3>
           <Button type="button" variant="outline" size="sm" onClick={addVariant} leftIcon={<Plus className="h-4 w-4" />}>Add Variant</Button>
         </div>
-        
+
         {variants.length === 0 && <p className="text-xs text-slate-500">No variants added. You can add specific weights and prices here.</p>}
-        
+
         {variants.map((v, i) => (
-          <div key={i} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-start p-4 rounded-xl border border-slate-700 bg-slate-900/50">
+          <div key={i} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-start p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
             <div className="md:col-span-1">
               <Input label="Variant Name" placeholder="e.g. Chicken" value={v.name} onChange={(e) => updateVariant(i, 'name', e.target.value)} required />
             </div>
@@ -142,11 +142,11 @@ export const MenuForm: React.FC = () => {
               <Input label="Price (PKR)" type="number" value={v.price} onChange={(e) => updateVariant(i, 'price', Number(e.target.value))} required />
             </div>
             <div className="md:col-span-1">
-              <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">Image</label>
-              <input type="file" accept="image/*" onChange={(e) => updateVariant(i, 'file', e.target.files?.[0] || null)} className="w-full text-xs" />
+              <label className="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">Image</label>
+              <input type="file" accept="image/*" onChange={(e) => updateVariant(i, 'file', e.target.files?.[0] || null)} className="w-full text-xs text-slate-700 dark:text-slate-300" />
             </div>
             <div className="md:col-span-1 pt-6 text-right">
-              <button type="button" onClick={() => removeVariant(i)} className="text-red-400 hover:text-red-300 p-2"><Trash2 className="h-5 w-5" /></button>
+              <button type="button" onClick={() => removeVariant(i)} className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 p-2"><Trash2 className="h-5 w-5" /></button>
             </div>
           </div>
         ))}

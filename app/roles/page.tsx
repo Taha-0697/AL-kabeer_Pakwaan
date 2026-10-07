@@ -78,13 +78,13 @@ export default function RolesPage() {
       body: JSON.stringify({ roleId: selectedRole.roleId, permissionIds: [...checkedIds] }),
     });
     setSaving(false);
-    
+
     // Update local state directly instead of re-fetching everything
     const updatedPermissions = [...checkedIds].map(id => ({
       permissionId: id,
       permission: allPermissions.find(p => p.permissionId === id)!
     })).filter(rp => rp.permission);
-    
+
     const updatedRoles = roles.map(r => r.roleId === selectedRole.roleId ? { ...r, rolePermissions: updatedPermissions } : r);
     setRoles(updatedRoles);
     setSelectedRole({ ...selectedRole, rolePermissions: updatedPermissions });
@@ -182,9 +182,19 @@ export default function RolesPage() {
         {/* ── Roles List ──────────────────────────────────────────── */}
         <div className="flex-1 space-y-3">
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
-            </div>
+            [...Array(4)].map((_, i) => (
+              <Card key={i} glass className="flex items-center gap-4 animate-pulse">
+                <div className="h-10 w-10 rounded-xl bg-slate-200 dark:bg-slate-700 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-24 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-4 w-12 rounded-full bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                  <div className="h-3 w-48 rounded bg-slate-200 dark:bg-slate-700" />
+                  <div className="h-3 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+                </div>
+              </Card>
+            ))
           ) : roles.length === 0 ? (
             <Card glass className="text-center py-12 text-slate-400">{t('noData')}</Card>
           ) : roles.map(role => (

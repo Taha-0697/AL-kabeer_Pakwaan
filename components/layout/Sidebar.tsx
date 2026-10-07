@@ -47,23 +47,39 @@ interface NavItem {
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const [items, setItems] = useState<NavItem[]>([]);
-  const { t, lang, setLang } = useLanguage();
+  const [loading, setLoading] = useState(true);
+  const { t, lang, setLang, isRTL } = useLanguage();
 
   useEffect(() => {
     fetch('/api/navigation')
       .then((r) => r.json())
-      .then((d) => d.success && setItems(d.data))
-      .catch((e) => console.error('Failed to load navigation', e));
+      .then((d) => {
+        if (d.success && Array.isArray(d.data)) {
+          setItems(d.data);
+        }
+      })
+      .catch((e) => console.error('Failed to load navigation', e))
+      .finally(() => setLoading(false));
   }, []);
 
   const toggleLanguage = () => {
     setLang(lang === 'en' ? 'ur' : 'en');
   };
 
+  const getNavLabel = (name: string) => {
+    const key = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const translated = t(key as any) || t(name.toLowerCase() as any) || t(name as any);
+    if (translated && translated !== key && translated !== name) return translated;
+    return name;
+  };
+
   return (
-    <aside className="fixed left-0 top-0 bottom-0 z-40 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col justify-between hidden md:flex">
+    <aside className={clsx(
+      'fixed top-0 bottom-0 z-40 w-64 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 flex flex-col justify-between hidden md:flex transition-colors',
+      isRTL ? 'right-0 border-l' : 'left-0 border-r'
+    )}>
       <div>
-        <div className="p-5 border-b border-slate-800 flex items-center gap-3">
+        <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
           {themeConfig.branding.logoUrl ? (
             <img src={themeConfig.branding.logoUrl} alt="Logo" className="h-10 w-10 object-contain rounded-xl" />
           ) : (
@@ -72,51 +88,66 @@ export const Sidebar: React.FC = () => {
             </div>
           )}
           <div>
-            <h1 className="font-bold text-white text-base leading-tight">{themeConfig.branding.systemName}</h1>
-            <p className="text-xs text-amber-500 font-semibold tracking-wide">{themeConfig.branding.tagline}</p>
+            <h1 className="font-bold text-slate-900 dark:text-white text-base leading-tight">{t('systemName') || themeConfig.branding.systemName}</h1>
+            <p className="text-xs text-amber-600 dark:text-amber-500 font-semibold tracking-wide">{t('tagline') || themeConfig.branding.tagline}</p>
           </div>
         </div>
 
         <nav className="p-3 space-y-1 max-h-[calc(100vh-180px)] overflow-y-auto">
-          {items.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-            const Icon = iconMap[item.icon] || LayoutDashboard;
-            // Map the API name to a translation key if possible, else lowercase it
-            const tKey = item.name.toLowerCase() as any;
+          {loading ? (
+            <div className="space-y-2 py-1">
+              {[...Array(9)].map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/50 animate-pulse"
+                >
+                  <div className="h-5 w-5 rounded-lg bg-slate-200 dark:bg-slate-700" />
+                  <div
+                    className="h-3.5 rounded-md bg-slate-200 dark:bg-slate-700"
+                    style={{ width: `${60 + ((i * 17) % 35)}%` }}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            items.map((item) => {
+              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+              const Icon = iconMap[item.icon] || LayoutDashboard;
 
-            return (
-              <Link
-                key={item.itemId}
-                href={item.href}
-                className={clsx(
-                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                  isActive
-                    ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/80'
-                )}
-              >
-                <Icon className={clsx('h-5 w-5', isActive ? 'text-white' : 'text-slate-400')} />
-                <span>{t(tKey) || item.name}</span>
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.itemId}
+                  href={item.href}
+                  className={clsx(
+                    'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                    isActive
+                      ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                  )}
+                >
+                  <Icon className={clsx('h-5 w-5', isActive ? 'text-white' : 'text-slate-400')} />
+                  <span>{getNavLabel(item.name)}</span>
+                </Link>
+              );
+            })
+          )}
         </nav>
       </div>
 
-      <div className="p-4 border-t border-slate-800 space-y-2">
-        <button
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+        {/* <button
           onClick={toggleLanguage}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800 transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
-          <Globe className="h-4 w-4" />
-          <span>{lang === 'en' ? 'Switch to Urdu' : 'Switch to English'}</span>
-        </button>
+          <Globe className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+          <span>{lang === 'en' ? t('switchToUrdu') : t('switchToEnglish')}</span>
+        </button> */}
         <button
           onClick={() => {
             document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
             window.location.href = '/login';
           }}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300 transition-colors"
         >
           <LogOut className="h-4 w-4" />
           <span>{t('logout')}</span>
