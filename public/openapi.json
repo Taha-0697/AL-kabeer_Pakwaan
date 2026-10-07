@@ -1,0 +1,87 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Al-Kabeer Pakwaan Catering Web Portal API",
+    "description": "Production-grade RESTful API specification for Al-Kabeer Pakwaan & Catering web application with JWT authentication, dual inventory management, deal packages, crockery recovery, and financial cashbook.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "summary": "User authentication",
+        "description": "Authenticates user with email/password and returns a signed JWT token",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "admin@alkabeer.com" },
+                  "password": { "type": "string", "example": "admin123" }
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successful login with JWT token" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/dashboard/kpis": {
+      "get": {
+        "summary": "Fetch dashboard metrics",
+        "responses": {
+          "200": { "description": "Returns pending bookings, today bookings, month revenue, cash balance, and low stock items" }
+        }
+      }
+    },
+    "/bookings": {
+      "get": {
+        "summary": "Get all bookings",
+        "responses": { "200": { "description": "List of bookings with client and payment details" } }
+      },
+      "post": {
+        "summary": "Create new booking",
+        "responses": { "201": { "description": "Booking created with auto-calculated totals" } }
+      }
+    },
+    "/inventory/transfer": {
+      "post": {
+        "summary": "Transfer stock from Super Store to Sub Store",
+        "responses": { "200": { "description": "Stock transferred and transaction logged" } }
+      }
+    },
+    "/uploads": {
+      "post": {
+        "summary": "Upload photo locally",
+        "description": "Uploads image to public/uploads directory and returns web relative path to save in DB",
+        "responses": { "200": { "description": "Photo saved locally" } }
+      }
+    }
+  }
+}

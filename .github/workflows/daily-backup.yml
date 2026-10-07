@@ -1,0 +1,39 @@
+name: Daily Database Backup
+
+on:
+  schedule:
+    # Runs at 23:59 UTC every day
+    - cron: '59 23 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Backup Script
+        env:
+          # Ensure you add DATABASE_URL in your GitHub Repository Secrets!
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run backup:now
+
+      - name: Commit Backup to GitHub
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add DB_Backups/
+          # Only commit if there are changes
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: automated daily DB backup"
+          git push

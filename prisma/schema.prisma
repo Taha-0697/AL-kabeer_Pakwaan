@@ -1,0 +1,388 @@
+// Prisma Schema for Al-Kabeer Pakwaan Web Portal
+// Dynamic RBAC with Super Admin Permission Approval & Multi-Stage Booking Lifecycle with Advance Payments
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userId                  String                   @id @default(uuid())
+  email                   String                   @unique
+  passwordHash            String
+  name                    String
+  roleName                String?                  @default("ADMIN")
+  role                    Role?                    @relation(fields: [roleName], references: [name], onDelete: SetNull)
+  phone                   String?
+  isActive                Boolean                  @default(true)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  employeeId              String?                  @unique   // Link to Employee payroll record
+  employee                Employee?                @relation(fields: [employeeId], references: [employeeId], onDelete: SetNull)
+  permissionRequestsMade  PermissionChangeRequest[] @relation("RequestedBy")
+  permissionRequestsApproved PermissionChangeRequest[] @relation("ApprovedBy")
+}
+
+model Role {
+  roleId                  String                   @id @default(uuid())
+  name                    String                   @unique
+  description             String?
+  isSystemRole            Boolean                  @default(false)
+  createdAt               DateTime                 @default(now())
+  users                   User[]
+  rolePermissions         RolePermission[]
+  permissionChangeRequests PermissionChangeRequest[]
+}
+
+model Permission {
+  permissionId    String           @id @default(uuid())
+  key             String           @unique
+  label           String
+  category        String           @default("Screen")
+  description     String?
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [roleId], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [permissionId], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model PermissionChangeRequest {
+  requestId     String   @id @default(uuid())
+  roleId        String
+  role          Role     @relation(fields: [roleId], references: [roleId], onDelete: Cascade)
+  requestedById String
+  requestedBy   User     @relation("RequestedBy", fields: [requestedById], references: [userId])
+  permissionIds String   // JSON array string of requested permission IDs
+  status        String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedById  String?
+  approvedBy    User?    @relation("ApprovedBy", fields: [approvedById], references: [userId])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model NavigationItem {
+  itemId                String   @id @default(uuid())
+  name                  String
+  href                  String   @unique
+  icon                  String   @default("LayoutDashboard")
+  displayOrder          Int      @default(0)
+  requiredPermissionKey String
+  isActive              Boolean  @default(true)
+}
+
+model BusinessProfile {
+  id                         String   @id @default("business_profile")
+  name                       String   @default("")
+  tagline                    String   @default("")
+  address                    String   @default("")
+  phone                      String   @default("")
+  whatsapp                   String   @default("")
+  email                      String   @default("")
+  defaultTransport           Float    @default(0.0)
+  baseTransportKm            Float    @default(0.0)
+  perKmRate                  Float    @default(0.0)
+  petrolPrice                Float    @default(0.0)
+  vehicleEfficiencyKmPerLitre Float   @default(0.0)
+  taxName                    String   @default("GST")
+  taxPercent                 Float    @default(13.0)
+  taxEnabled                 Boolean  @default(true)
+  logoUrl                    String   @default("")
+}
+
+model Client {
+  clientId    String    @id @default(uuid())
+  name        String
+  cnic        String?
+  phone       String
+  whatsapp    String?
+  email       String?
+  address     String?
+  notes       String?
+  totalOrders Int       @default(0)
+  totalSpent  Float     @default(0.0)
+  createdAt   DateTime  @default(now())
+  bookings    Booking[]
+}
+
+model MenuItem {
+  itemId       String             @id @default(uuid())
+  name         String
+  category     String             @default("Rice")
+  unit         String             @default("Degh")
+  sellingPrice Float              @default(0.0)
+  costPrice    Float              @default(0.0)
+  isActive     Boolean            @default(true)
+  description  String?
+  imageUrl     String?
+  chickenPrice Float              @default(0.0)
+  beefPrice    Float              @default(0.0)
+  muttonPrice  Float              @default(0.0)
+  recipes      Recipe[]
+  bookingItems BookingItem[]
+  dealItems    DealItem[]
+  variants     MenuItemVariant[]
+}
+
+model MenuItemVariant {
+  variantId    String     @id @default(uuid())
+  menuItemId   String
+  menuItem     MenuItem   @relation(fields: [menuItemId], references: [itemId], onDelete: Cascade)
+  name         String     // e.g. "Chicken 10KG", "Beef 12KG"
+  weightKg     Float      @default(0.0)
+  price        Float      @default(0.0)
+  imageUrl     String?
+}
+
+model Recipe {
+  recipeId      String             @id @default(uuid())
+  menuItemId    String
+  menuItem      MenuItem           @relation(fields: [menuItemId], references: [itemId], onDelete: Cascade)
+  yieldServings Int                @default(1)
+  ingredients   RecipeIngredient[]
+}
+
+model RecipeIngredient {
+  id                String        @id @default(uuid())
+  recipeId          String
+  recipe            Recipe        @relation(fields: [recipeId], references: [recipeId], onDelete: Cascade)
+  inventoryItemId   String
+  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [itemId], onDelete: Cascade)
+  quantityRequired  Float
+  unit              String
+}
+
+model InventoryItem {
+  itemId            String                @id @default(uuid())
+  sku               String?               @unique
+  name              String
+  category          String
+  unit              String                @default("Kg")
+  storeType         String                @default("SUPER_STORE")
+  currentStock      Float                 @default(0.0)
+  minStock          Float                 @default(0.0)
+  purchasePrice     Float                 @default(0.0)
+  supplier          String?
+  expiryDate        DateTime?
+  transactions      InventoryTransaction[]
+  recipeIngredients RecipeIngredient[]
+}
+
+model InventoryTransaction {
+  txId            String        @id @default(uuid())
+  itemId          String
+  inventoryItem   InventoryItem @relation(fields: [itemId], references: [itemId], onDelete: Cascade)
+  storeType       String
+  txType          String
+  quantityBefore  Float
+  quantityChanged Float
+  quantityAfter   Float
+  notes           String?
+  timestamp       DateTime      @default(now())
+}
+
+model Deal {
+  dealId          String     @id @default(uuid())
+  title           String
+  description     String?
+  timeSlot        String     @default("Dinner")
+  minPersons      Int        @default(100)
+  maxPersons      Int        @default(500)
+  pricePerPerson  Float      @default(0.0)
+  discountPercent Float      @default(10.0)
+  isActive        Boolean    @default(true)
+  items           DealItem[]
+  bookings        Booking[]
+}
+
+model DealItem {
+  id         String   @id @default(uuid())
+  dealId     String
+  deal       Deal     @relation(fields: [dealId], references: [dealId], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [itemId], onDelete: Cascade)
+  quantity   Float    @default(1.0)
+  unitPrice  Float    @default(0.0)
+}
+
+model Booking {
+  bookingId              String                 @id @default(uuid())
+  bookingNumber          String                 @unique
+  clientId               String
+  client                 Client                 @relation(fields: [clientId], references: [clientId])
+  clientName             String
+  clientPhone            String
+  clientCnic             String?
+  eventDate              DateTime
+  eventTime              String                 @default("08:00 PM")
+  venue                  String
+  guestCount             Int                    @default(100)
+  dealId                 String?
+  deal                   Deal?                  @relation(fields: [dealId], references: [dealId])
+  dealName               String?
+  dealDiscount           Float                  @default(0.0)
+  subtotal               Float                  @default(0.0)
+  discountAmount         Float                  @default(0.0)
+  transportFee           Float                  @default(5000.0)
+  taxPercent             Float                  @default(13.0)
+  taxAmount              Float                  @default(0.0)
+  grandTotal             Float                  @default(0.0)
+  advancePaid            Float                  @default(0.0)
+  totalPaid              Float                  @default(0.0)
+  balance                Float                  @default(0.0)
+  status                 String                 @default("PENDING_APPROVAL") // PENDING_APPROVAL, APPROVED, DELIVERED, COMPLETED, CANCELLED
+  paymentStatus          String                 @default("UNPAID") // UNPAID, PARTIAL_ADVANCE, PAID, OVERPAID
+  approvedBy             String?
+  approvedAt             DateTime?
+  deliveredAt            DateTime?
+  notes                  String?
+  createdAt              DateTime               @default(now())
+  isLabourProvided       Boolean                @default(true)
+  crockeryRecoveryStatus String                 @default("NOT_APPLICABLE")
+  items                  BookingItem[]
+  payments               BookingPayment[]
+  crockeryItems          BookingCrockeryItem[]
+  labourAssignments      LabourAssignment[]
+  cashTransactions       CashTransaction[]
+}
+
+model BookingItem {
+  id           String   @id @default(uuid())
+  bookingId    String
+  booking      Booking  @relation(fields: [bookingId], references: [bookingId], onDelete: Cascade)
+  menuItemId   String?
+  menuItem     MenuItem? @relation(fields: [menuItemId], references: [itemId])
+  itemName     String?
+  category     String   @default("Rice")
+  unit         String   @default("Degh")
+  quantity     Float    @default(1.0)
+  unitPrice    Float    @default(0.0)
+  unitCost     Float    @default(0.0)
+  subtotal     Float    @default(0.0)
+  variantName  String?
+  weightKg     Float?
+}
+
+model BookingPayment {
+  paymentId     String   @id @default(uuid())
+  bookingId     String
+  booking       Booking  @relation(fields: [bookingId], references: [bookingId], onDelete: Cascade)
+  receiptNumber String
+  amount        Float
+  paymentDate   DateTime @default(now())
+  paymentMethod String   @default("Cash")
+  balanceBefore Float    @default(0.0)
+  balanceAfter  Float    @default(0.0)
+  isAdvance     Boolean  @default(false)
+  notes         String?
+}
+
+model CrockeryItem {
+  crockeryId        String                @id @default(uuid())
+  name              String
+  category          String                @default("Daighs")
+  totalStock        Int                   @default(0)
+  issuedQuantity    Int                   @default(0)
+  availableQuantity Int                   @default(0)
+  replacementCost   Float                 @default(0.0)
+  condition         String                @default("Good")
+  notes             String?
+  bookingItems      BookingCrockeryItem[]
+}
+
+model BookingCrockeryItem {
+  id          String       @id @default(uuid())
+  bookingId   String
+  booking     Booking      @relation(fields: [bookingId], references: [bookingId], onDelete: Cascade)
+  crockeryId  String
+  crockery    CrockeryItem @relation(fields: [crockeryId], references: [crockeryId])
+  quantity    Int          @default(1)
+  isRecovered Boolean      @default(false)
+  notes       String?
+}
+
+model CashTransaction {
+  txId          String   @id @default(uuid())
+  txType        String   @default("CASH_IN")
+  amount        Float
+  category      String   @default("Booking Advance")
+  paidToFrom    String?
+  comments      String?
+  reference     String?
+  bookingId     String?
+  booking       Booking? @relation(fields: [bookingId], references: [bookingId])
+  receiptNumber String?
+  txDate        DateTime @default(now())
+}
+
+model Employee {
+  employeeId        String             @id @default(uuid())
+  name              String
+  role              String
+  phone             String
+  cnic              String?
+  address           String?
+  monthlySalary     Float              @default(0.0)
+  joiningDate       DateTime           @default(now())
+  isActive          Boolean            @default(true)
+  user              User?                              // back-relation
+  attendanceRecords AttendanceRecord[]
+  labourAssignments LabourAssignment[]
+  salaryPayments    SalaryPayment[]
+  salaryNotices     SalaryNotice[]
+}
+
+model AttendanceRecord {
+  recordId     String    @id @default(uuid())
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+  date         DateTime  @default(now())
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  hoursWorked  Float     @default(0.0)
+  notes        String?
+}
+
+model LabourAssignment {
+  assignmentId    String   @id @default(uuid())
+  bookingId       String
+  booking         Booking  @relation(fields: [bookingId], references: [bookingId], onDelete: Cascade)
+  employeeId      String
+  employee        Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+  taskDescription String?
+  menuItemId      String?
+}
+
+model SalaryPayment {
+  paymentId  String   @id @default(uuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+  month      String
+  amount     Float
+  paidOn     DateTime @default(now())
+  isPaid     Boolean  @default(false)
+  notes      String?
+}
+
+// Super Admin salary notices / advance notices
+model SalaryNotice {
+  noticeId   String   @id @default(uuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+  title      String
+  message    String
+  amount     Float    @default(0.0)
+  noticeType String   @default("ADVANCE") // ADVANCE, BONUS, DEDUCTION, GENERAL
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
