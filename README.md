@@ -127,8 +127,8 @@ AL-kabeer_Pakwaan/
 
 | Field | Value |
 | :--- | :--- |
-| Email | `admin@alkabeer.com` |
-| Password | `admin123` |
+| Email | `[EMAIL_ADDRESS]` |
+| Password | `[PASSWORD]` |
 
 > ⚠️ Change this password immediately in any non-local environment.
 
